@@ -1,0 +1,102 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Artisan AI - Serverless FastAPI Backend
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 1024
+    Runtime: python3.11
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        DATABASE_URL: !Ref DatabaseUrl
+        S3_BUCKET_NAME: !Ref MediaBucketName
+        AWS_REGION_NAME: !Ref AWS::Region
+        GROQ_API_KEY: !Ref GroqApiKey
+        GEMINI_API_KEY: !Ref GeminiApiKey
+
+Parameters:
+  DatabaseUrl:
+    Type: String
+    Default: "sqlite:////tmp/kalasetu.db"
+    Description: Database connection string
+
+  MediaBucketName:
+    Type: String
+    Default: ""
+    Description: Optional S3 bucket name
+
+  GroqApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Optional Groq API key
+
+  GeminiApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Optional Gemini API key
+
+Resources:
+  ArtisanHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Requested-With
+        MaxAge: 600
+
+  ArtisanApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Zip
+      CodeUri: backend/
+      Handler: lambda_handler.handler
+      Policies:
+        - Statement:
+            - Sid: S3MediaUploadPolicy
+              Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+                - s3:DeleteObject
+                - s3:ListBucket
+              Resource: "*"
+      Events:
+        RootEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ArtisanHttpApi
+            Path: /
+            Method: ANY
+
+        ProxyEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ArtisanHttpApi
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  ApiEndpoint:
+    Description: Public API Gateway HTTPS endpoint
+    Value: !Sub "https://${ArtisanHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+
+  FunctionArn:
+    Description: Lambda Function ARN
+    Value: !GetAtt ArtisanApiFunction.Arn
+    

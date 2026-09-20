@@ -1,0 +1,439 @@
+"""
+Pydantic Schemas for Request/Response validation.
+
+Designed for full compatibility with Flutter Dart models:
+- Product model (product.dart)
+- PriceSuggestion model (pricing_service.dart)
+- AiListingSuggestion (speech_service.dart)
+- ArtisanProfile (user_profile.dart)
+"""
+
+from datetime import datetime
+from typing import List, Optional
+from pydantic import BaseModel, Field, ConfigDict
+
+
+# ── Artisan Schemas ─────────────────────────────────────────────────────────
+
+
+class ArtisanRegisterRequest(BaseModel):
+    name: str = Field(..., description="Artisan full name")
+    phone: str = Field(..., description="10-digit mobile number")
+    craft_type: str = Field(..., description="Primary craft category")
+    location_cluster: str = Field(..., description="Artisan cluster / town location")
+    state: Optional[str] = Field(default="", description="State / Region")
+    experience_years: Optional[str] = Field(default=None, description="Craft experience in years")
+    pehchan_id: Optional[str] = Field(default=None, description="Pehchan card / Artisan ID")
+    preferred_language: Optional[str] = Field(default="en", description="Preferred app language")
+
+
+class ArtisanLoginRequest(BaseModel):
+    phone: str = Field(..., description="10-digit mobile number")
+
+
+class OtpVerifyRequest(BaseModel):
+    phone: str = Field(..., description="10-digit mobile number")
+    otp: str = Field(..., description="6-digit OTP code")
+
+
+class ArtisanProfileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    phone: str
+    craft_type: str
+    location_cluster: str
+    state: str
+    experience_years: Optional[str] = None
+    pehchan_id: Optional[str] = None
+    preferred_language: str
+    created_at: datetime
+
+
+# ── Product Schemas ─────────────────────────────────────────────────────────
+
+
+class ProductBase(BaseModel):
+    title: str = Field(..., description="English product title")
+    title_hi: Optional[str] = Field(default="", description="Hindi product title")
+    description: str = Field(..., description="English product description")
+    description_hi: Optional[str] = Field(default="", description="Hindi product description")
+    price: float = Field(..., ge=0.0, description="Selling price in INR")
+    image_url: str = Field(..., description="URL or local path to product image")
+    category: str = Field(default="General", description="Craft category")
+    tags: List[str] = Field(default_factory=list, description="Search and catalog tags")
+    status: str = Field(default="live", description="Status: live, draft, archived")
+
+
+class ProductCreate(ProductBase):
+    id: Optional[str] = Field(default=None, description="Optional custom ID (e.g. from offline queue)")
+    artisan_id: Optional[str] = Field(default=None, description="Owner artisan ID")
+    created_at: Optional[datetime] = Field(default=None)
+
+
+class ProductUpdate(BaseModel):
+    title: Optional[str] = None
+    title_hi: Optional[str] = None
+    description: Optional[str] = None
+    description_hi: Optional[str] = None
+    price: Optional[float] = None
+    image_url: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+    status: Optional[str] = None
+
+
+class ProductResponse(ProductBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    artisan_id: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+
+class ProductSyncBatch(BaseModel):
+    """Batch payload sent during offline sync drain."""
+    products: List[ProductCreate]
+
+
+class ProductSyncResponse(BaseModel):
+    synced_count: int
+    products: List[ProductResponse]
+
+
+# ── Pricing Schemas ─────────────────────────────────────────────────────────
+
+
+class CostInputsSchema(BaseModel):
+    materials: float = Field(default=0.0, ge=0, description="Raw material cost in INR")
+    labor_hours: float = Field(default=0.0, ge=0, description="Hours of labor invested")
+    hourly_rate: float = Field(default=50.0, ge=0, description="Hourly wage rate in INR")
+    transport: float = Field(default=0.0, ge=0, description="Transport/shipping cost in INR")
+    overhead: float = Field(default=0.0, ge=0, description="Miscellaneous overhead in INR")
+
+
+class PriceSuggestRequest(BaseModel):
+    """
+    Pricing suggestion request payload.
+    Supports both naming conventions (Flutter camelCase/snake_case).
+    """
+    description: str = Field(..., description="Artisan product description")
+    category: Optional[str] = Field(default=None, description="Product craft category")
+    image_url: Optional[str] = Field(default=None, description="URL or path to product image")
+    
+    # Cost Breakdown
+    raw_material_cost: Optional[float] = Field(default=None, ge=0)
+    materials: Optional[float] = Field(default=None, ge=0)
+    base_cost: Optional[float] = Field(default=None, ge=0, description="Artisan base cost / total cost of making in INR")
+    making_cost: Optional[float] = Field(default=None, ge=0, description="Vernacular alias for cost of making in INR")
+    
+    labor_hours: Optional[float] = Field(default=None, ge=0)
+    
+    hourly_wage: Optional[float] = Field(default=None, ge=0)
+    hourly_rate: Optional[float] = Field(default=None, ge=0)
+    
+    transport: Optional[float] = Field(default=0.0, ge=0)
+    overhead: Optional[float] = Field(default=0.0, ge=0)
+
+    tags: Optional[List[str]] = Field(default_factory=list)
+
+    def to_cost_inputs(self) -> CostInputsSchema:
+        """
+        Normalize cost inputs from various field aliases.
+        Precedence:
+          1. materials (canonical internal)
+          2. raw_material_cost (standard API)
+          3. base_cost (artisan speech/override)
+          4. making_cost (vernacular alias)
+        """
+        candidates = [self.materials, self.raw_material_cost, self.base_cost, self.making_cost]
+        raw_mat = next((c for c in candidates if c is not None and c > 0), 0.0)
+        mat = float(raw_mat)
+
+        raw_hours = self.labor_hours
+        hours = float(raw_hours) if (raw_hours is not None and raw_hours > 0) else 0.0
+
+        raw_rate = self.hourly_rate if self.hourly_rate is not None else self.hourly_wage
+        # If labor hours are invested but hourly rate is missing or 0, default to fair wage standard (₹50.0/hr)
+        rate = float(raw_rate) if (raw_rate is not None and raw_rate > 0) else (50.0 if hours > 0 else 0.0)
+
+        raw_transport = self.transport
+        transport = float(raw_transport) if (raw_transport is not None and raw_transport > 0) else 0.0
+
+        raw_overhead = self.overhead
+        overhead = float(raw_overhead) if (raw_overhead is not None and raw_overhead > 0) else 0.0
+
+        return CostInputsSchema(
+            materials=mat,
+            labor_hours=hours,
+            hourly_rate=rate,
+            transport=transport,
+            overhead=overhead,
+        )
+
+
+class ComparableProductSchema(BaseModel):
+    id: str
+    title: str
+    selling_price: float
+    category: str
+    source_platform: str
+    similarity_score: float
+    product_url: Optional[str] = None
+
+
+class PriceSuggestResponse(BaseModel):
+    """
+    Structured pricing recommendation compatible with Flutter PriceSuggestion model.
+    """
+    suggested_price: float = Field(description="Primary suggested market price in INR")
+    min_price: float = Field(description="Lower bound of suggested price range")
+    max_price: float = Field(description="Upper bound of suggested price range")
+    floor_price: float = Field(description="Calculated cost floor (materials + labor)")
+    confidence_score: float = Field(description="Confidence (0.0 - 1.0)")
+    market_position: str = Field(description="Positioning: budget, mid-range, premium, luxury")
+    reasoning: str = Field(description="English reasoning for the suggested price")
+    reasoning_hi: str = Field(description="Hindi reasoning for text-to-speech readback")
+    comparable_products: List[ComparableProductSchema] = Field(default_factory=list)
+
+
+# ── AI Cataloger & Audio Schemas ────────────────────────────────────────────
+
+
+class AudioTranscribeResponse(BaseModel):
+    transcript: str
+    language_code: str
+    detected_language: Optional[str] = None
+    duration_seconds: Optional[float] = None
+    provider: Optional[str] = "whisper"
+    is_fallback: bool = False
+    status: str = "completed"
+
+
+class ListingGenerateRequest(BaseModel):
+    transcript: str
+    language_code: str = "hi"
+    category_hint: Optional[str] = None
+    image_url: Optional[str] = None
+
+
+class ListingGenerateResponse(BaseModel):
+    title_en: str
+    title_hi: str
+    description_en: str
+    description_hi: str
+    category: str
+    tags: List[str]
+    cost_inputs: Optional[CostInputsSchema] = None
+
+
+class ImageEnhanceResponse(BaseModel):
+    original_url: str
+    enhanced_url: str
+    status: str = "success"
+
+
+class VoiceToProductResponse(BaseModel):
+    """
+    Unified result for end-to-end voice pipeline:
+    audio -> transcript -> bilingual listing -> pricing recommendation -> product draft.
+    """
+    transcript: str
+    language_code: str
+    title_en: str
+    title_hi: str
+    description_en: str
+    description_hi: str
+    category: str
+    tags: List[str]
+    pricing: PriceSuggestResponse
+    audio_url: Optional[str] = None
+    image_url: Optional[str] = None
+    product_draft: ProductCreate
+    status: str = "completed"
+
+
+class VoiceGlossaryResponse(BaseModel):
+    """Craft glossary lookup response."""
+    category: Optional[str] = None
+    total_terms: int
+    terms: List[str]
+    categories: List[str]
+
+
+# ── Social Media Helper Schemas ──────────────────────────────────────────────
+
+
+class SocialDraftRequest(BaseModel):
+    """
+    Unified request body for generating a social-media caption + hashtags.
+    Accepts either listing_id (persisted catalogue item) or draft_key (unsaved add-flow item).
+    """
+
+    image_url: str = Field(..., description="URL of the product image to use for the caption")
+    listing_id: Optional[str] = Field(default=None, description="Listing ID (for saved catalog items)")
+    draft_key: Optional[str] = Field(default=None, description="Draft key (for unsaved add-flow items)")
+    title: Optional[str] = Field(default="", description="Listing title (English)")
+    category: Optional[str] = Field(default="", description="Craft category")
+    materials: Optional[List[str]] = Field(default_factory=list, description="Materials used")
+    description: Optional[str] = Field(default="", description="Listing description")
+    tone: Optional[str] = Field(default="warm and authentic", description="Caption tone (warm | playful | minimal)")
+    locale: Optional[str] = Field(default="en-US", description="BCP-47 locale code for caption language")
+    source: str = Field(default="catalogue", description="Entry-point source: add_flow | catalogue")
+    channel: Optional[str] = Field(default="instagram", description="Target channel: whatsapp | instagram | facebook")
+
+
+class SocialDraftUnsavedRequest(SocialDraftRequest):
+    """Backward-compatible alias for unsaved add-flow requests."""
+    pass
+
+
+class SocialDraftSaveRequest(BaseModel):
+    """Body used when the user saves (possibly edited) caption + hashtags."""
+
+    caption: str = Field(..., description="Caption text (may be user-edited)")
+    hashtags: List[str] = Field(..., description="Hashtag list (may be user-edited)")
+    edited_by_user: bool = Field(default=True, description="Whether the user modified the AI output")
+
+
+class SocialDraftResponse(BaseModel):
+    """Response from generate and save endpoints."""
+
+    draft_id: str = Field(description="UUID of the persisted social_drafts row")
+    caption: str
+    hashtags: List[str]
+
+
+# ── KalaMitra Chatbot & Navigation Agent Schemas ─────────────────────────────
+
+
+class ChatMessageSchema(BaseModel):
+    """Single message in a conversational thread."""
+    role: str = Field(..., description="'user' or 'assistant'")
+    content: str = Field(..., description="Message text")
+
+
+class ChatActionSchema(BaseModel):
+    """Structured in-app action emitted by the navigation & action agent."""
+    type: str = Field(default="navigate", description="Action type: 'navigate' | 'update_product_status' | 'filter_catalogue' | 'sync_pending'")
+    destination: str = Field(default="catalogue", description="Target screen identifier (e.g. 'add_product', 'catalogue', 'my_stats', 'sync')")
+    route: Optional[str] = Field(default=None, description="GoRouter route path (e.g. '/add-product', '/my-stats')")
+    tab_index: Optional[int] = Field(default=None, description="BottomNavigationBar tab index in HomeShell (0=add, 1=catalogue, 2=notifications, 3=profile)")
+    label: str = Field(..., description="Action button title (e.g. 'Go to Add Product' / 'उत्पाद जोड़ें पर जाएं')")
+    params: Optional[dict] = Field(default=None, description="Optional route, filter, or target product parameters")
+
+
+class ChatRequestSchema(BaseModel):
+    """User prompt to the KalaMitra assistant."""
+    message: str = Field(..., max_length=500, description="User query / utterance (capped at 500 chars to prevent prompt stuffing)")
+    history: List[ChatMessageSchema] = Field(default_factory=list, description="Recent conversation turns")
+    language_code: Optional[str] = Field(default="en", description="Preferred response language ('en', 'hi', etc.)")
+    current_screen: Optional[str] = Field(default=None, description="Identifier of the screen the user is currently on")
+    artisan_craft: Optional[str] = Field(default=None, description="Registered craft type from artisan profile (e.g. 'Terracotta Pottery', 'Chanderi Handloom')")
+
+
+class ChatResponseSchema(BaseModel):
+    """KalaMitra assistant response with optional navigation action."""
+    reply: str = Field(..., description="Empathetic, clear answer to the user's query")
+    action: Optional[ChatActionSchema] = Field(default=None, description="Navigation action if navigation intent was detected")
+    suggested_queries: List[str] = Field(default_factory=list, description="Follow-up quick question chips")
+
+
+class VoiceChatResponseSchema(BaseModel):
+    """KalaMitra voice chat response containing Whisper transcription and assistant reply."""
+    user_transcript: str = Field(..., description="Artisan spoken utterance transcribed by Whisper STT")
+    reply: str = Field(..., description="Empathetic, clear answer to the user's query")
+    action: Optional[ChatActionSchema] = Field(default=None, description="Navigation action if navigation intent was detected")
+    suggested_queries: List[str] = Field(default_factory=list, description="Follow-up quick question chips")
+
+
+# ── Order Schemas ────────────────────────────────────────────────────────────
+
+
+class OrderCreate(BaseModel):
+    product_id: Optional[str] = Field(default=None, description="Product listing ID")
+    artisan_id: Optional[str] = Field(default=None, description="Owner artisan ID")
+    product_title: str = Field(..., description="Product title")
+    product_title_hi: Optional[str] = Field(default="", description="Hindi product title")
+    product_category: str = Field(default="General", description="Craft category")
+    product_image_url: Optional[str] = Field(default="", description="Product image URL")
+    buyer_name: str = Field(..., description="Buyer name")
+    buyer_location: str = Field(default="India", description="Buyer delivery location")
+    buyer_phone: Optional[str] = Field(default="", description="Buyer contact number")
+    amount: float = Field(..., ge=0.0, description="Total order amount (INR)")
+    quantity: int = Field(default=1, ge=1, description="Number of units ordered")
+    status: str = Field(default="newOrder", description="Fulfilment status: newOrder, packed, shipped, delivered, cancelled")
+
+
+class OrderStatusUpdate(BaseModel):
+    status: str = Field(..., description="New status: newOrder, packed, shipped, delivered, cancelled")
+    tracking_id: Optional[str] = Field(default=None, description="Optional courier tracking number")
+
+
+class OrderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    artisan_id: Optional[str] = None
+    product_id: Optional[str] = None
+    product_title: str
+    product_title_hi: Optional[str] = ""
+    product_category: str
+    product_image_url: str
+    buyer_name: str
+    buyer_location: str
+    buyer_phone: Optional[str] = ""
+    amount: float
+    quantity: int
+    status: str
+    tracking_id: Optional[str] = None
+    placed_at: datetime
+    shipped_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+# ── B2B Buyer Inquiry Schemas ────────────────────────────────────────────────
+
+
+class BuyerInquiryCreate(BaseModel):
+    artisan_id: Optional[str] = Field(default=None, description="Target artisan ID")
+    product_id: Optional[str] = Field(default=None, description="Associated product ID (if inquiring about specific listing)")
+    buyer_name: str = Field(..., description="Buyer or procurement lead name")
+    buyer_organization: Optional[str] = Field(default="", description="Company, retail brand, or cooperative name")
+    buyer_phone: str = Field(..., description="Buyer contact phone number")
+    buyer_email: Optional[str] = Field(default="", description="Buyer contact email")
+    buyer_location: Optional[str] = Field(default="", description="Delivery city or cluster")
+    craft_type: Optional[str] = Field(default="", description="Craft category / specialization inquired")
+    quantity: int = Field(default=50, ge=1, description="Bulk quantity requested")
+    target_price_per_unit: Optional[float] = Field(default=None, ge=0.0, description="Target price per piece in INR")
+    message: Optional[str] = Field(default="", description="Inquiry requirements or custom customization notes")
+
+
+class BuyerInquiryStatusUpdate(BaseModel):
+    status: str = Field(..., description="New status: pending, accepted, rejected")
+    artisan_response_note: Optional[str] = Field(default="", description="Optional response message or counter-offer")
+
+
+class BuyerInquiryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    artisan_id: Optional[str] = None
+    product_id: Optional[str] = None
+    buyer_name: str
+    buyer_organization: Optional[str] = ""
+    buyer_phone: str
+    buyer_email: Optional[str] = ""
+    buyer_location: Optional[str] = ""
+    craft_type: Optional[str] = ""
+    quantity: int
+    target_price_per_unit: Optional[float] = None
+    message: Optional[str] = ""
+    status: str
+    artisan_response_note: Optional[str] = ""
+    created_at: datetime
+    updated_at: datetime
+

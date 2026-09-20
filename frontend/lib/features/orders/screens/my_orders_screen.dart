@@ -1,0 +1,1059 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:easy_localization/easy_localization.dart';
+import '../../../core/services/app_tts_service.dart';
+import '../../../core/services/tts_page_guides.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/router/app_route_constants.dart';
+import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/app_image.dart';
+import '../../../core/widgets/motifs/empty_craft_state.dart';
+import '../../../core/widgets/motifs/craft_category_badge.dart';
+import '../../../core/widgets/speaker_affordance.dart';
+import '../models/order.dart';
+import '../models/buyer_inquiry.dart';
+import '../providers/orders_provider.dart';
+import '../services/label_maker_service.dart';
+
+class MyOrdersScreen extends ConsumerStatefulWidget {
+  const MyOrdersScreen({super.key});
+
+  @override
+  ConsumerState<MyOrdersScreen> createState() => _MyOrdersScreenState();
+}
+
+class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final orders = ref.watch(filteredOrdersProvider);
+    final selectedFilter = ref.watch(selectedOrderFilterProvider);
+    final inquiries = ref.watch(inquiriesProvider);
+    final pendingCount = inquiries.where((i) => i.status == BuyerInquiryStatus.pending).length;
+
+    return AppScaffold(
+      title: 'my_orders_title'.tr(),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.trending_up),
+          tooltip: 'artisan_analytics_tooltip'.tr(),
+          onPressed: () => context.pushNamed(AppRouteConstants.myStats),
+        ),
+      ],
+      body: DefaultTabController(
+        length: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Segmented Header Bar
+            Container(
+              margin: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenPadding,
+                vertical: AppSpacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.linenMuted,
+                borderRadius: BorderRadius.circular(AppRadii.card),
+                border: Border.all(color: AppColors.line),
+              ),
+              child: TabBar(
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicator: BoxDecoration(
+                  color: AppColors.terracotta,
+                  borderRadius: BorderRadius.circular(AppRadii.card - 2),
+                ),
+                labelColor: Colors.white,
+                unselectedLabelColor: AppColors.inkSoft,
+                labelStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w700),
+                tabs: [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.shopping_bag_outlined, size: 15),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            'orders_tab_direct'.tr(),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.business_center_outlined, size: 15),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            'orders_tab_b2b'.tr(),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        if (pendingCount > 0) ...[
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppColors.gold,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '$pendingCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Tab Views
+            Expanded(
+              child: TabBarView(
+                children: [
+                  // Tab 1: Direct Orders
+                  RefreshIndicator(
+                    onRefresh: () => ref.read(ordersProvider.notifier).loadOrders(),
+                    color: AppColors.terracotta,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Filter pills
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(
+                            left: AppSpacing.screenPadding,
+                            right: 32,
+                            top: AppSpacing.xs,
+                            bottom: AppSpacing.sm,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _FilterChip(
+                                label: 'order_filter_all'.tr(),
+                                selected: selectedFilter == null,
+                                onTap: () => ref.read(selectedOrderFilterProvider.notifier).state = null,
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              ...OrderStatus.values.map((status) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: AppSpacing.sm),
+                                  child: _FilterChip(
+                                    label: status.labelKey.tr(),
+                                    selected: selectedFilter == status,
+                                    dotColor: _statusDotColor(status),
+                                    onTap: () => ref.read(selectedOrderFilterProvider.notifier).state = status,
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+
+                        // Orders list
+                        Expanded(
+                          child: orders.isEmpty
+                              ? _EmptyOrders()
+                              : ListView.builder(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.screenPadding,
+                                    vertical: AppSpacing.xs,
+                                  ),
+                                  itemCount: orders.length,
+                                  itemBuilder: (context, index) {
+                                    final order = orders[index];
+                                    return _OrderCard(
+                                      order: order,
+                                      onTap: () {
+                                        context.pushNamed(
+                                          AppRouteConstants.orderDetail,
+                                          pathParameters: {'orderId': order.id},
+                                          extra: order,
+                                        );
+                                      },
+                                      onStatusAdvance: () {
+                                        final next = order.status.next;
+                                        if (next != null) {
+                                          ref.read(ordersProvider.notifier).updateStatus(order.id, next);
+                                          LabelMakerService.invalidateCache(order.id);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'status_updated_to'.tr(namedArgs: {'status': next.labelKey.tr()}),
+                                              ),
+                                              backgroundColor: AppColors.terracotta,
+                                              duration: const Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Tab 2: B2B Wholesale Inquiries
+                  RefreshIndicator(
+                    onRefresh: () => ref.read(inquiriesProvider.notifier).loadInquiries(),
+                    color: AppColors.terracotta,
+                    child: inquiries.isEmpty
+                        ? _EmptyInquiries()
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.screenPadding,
+                              vertical: AppSpacing.sm,
+                            ),
+                            itemCount: inquiries.length,
+                            itemBuilder: (context, index) {
+                              final inq = inquiries[index];
+                              return _InquiryCard(
+                                inquiry: inq,
+                                onAccept: () => _confirmInquiryAction(context, inq, accept: true),
+                                onReject: () => _confirmInquiryAction(context, inq, accept: false),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmInquiryAction(BuildContext context, BuyerInquiry inquiry, {required bool accept}) {
+    final noteController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppColors.cardSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.dialog)),
+        title: Text(
+          accept ? 'inquiry_accept_btn'.tr() : 'inquiry_decline_btn'.tr(),
+          style: AppTextStyles.titleMedium.copyWith(color: AppColors.ink, fontWeight: FontWeight.w700),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              accept
+                  ? 'Accept wholesale inquiry from ${inquiry.buyerName} (${inquiry.quantity} units)?'
+                  : 'Decline bulk inquiry from ${inquiry.buyerName}?',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.inkSoft),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextField(
+              controller: noteController,
+              decoration: InputDecoration(
+                hintText: 'Add a response note (optional)',
+                hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.inkFaint),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadii.inputField)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: Text('cancel'.tr(), style: const TextStyle(color: AppColors.inkSoft)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accept ? AppColors.oliveDark : AppColors.inkSoft,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              final note = noteController.text.trim();
+              if (accept) {
+                ref.read(inquiriesProvider.notifier).acceptInquiry(inquiry.id, note: note.isNotEmpty ? note : null);
+              } else {
+                ref.read(inquiriesProvider.notifier).rejectInquiry(inquiry.id, note: note.isNotEmpty ? note : null);
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(accept ? 'Inquiry accepted!' : 'Inquiry declined'),
+                  backgroundColor: accept ? AppColors.oliveDark : AppColors.inkSoft,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: Text(accept ? 'Accept' : 'Decline'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _statusDotColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.newOrder:  return AppColors.terracotta;
+      case OrderStatus.packed:    return AppColors.gold;
+      case OrderStatus.shipped:   return AppColors.success;
+      case OrderStatus.delivered: return AppColors.success;
+      case OrderStatus.cancelled: return AppColors.inkSoft;
+    }
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color? dotColor;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    this.dotColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      avatar: dotColor != null
+          ? Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: selected ? Colors.white : dotColor,
+                shape: BoxShape.circle,
+              ),
+            )
+          : null,
+      label: Text(
+        label,
+        style: AppTextStyles.labelSmall.copyWith(
+          color: selected ? AppColors.textOnPrimary : AppColors.inkSoft,
+          fontWeight: FontWeight.w700,
+          fontSize: 12.5,
+        ),
+      ),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      showCheckmark: false,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      labelPadding: EdgeInsets.only(
+        left: dotColor != null ? 2 : 6,
+        right: 8,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      backgroundColor: AppColors.cardSurface,
+      selectedColor: AppColors.terracotta,
+      side: BorderSide(
+        color: selected ? AppColors.terracotta : AppColors.line,
+        width: 1.5,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.chip),
+      ),
+    );
+  }
+}
+
+class _OrderCard extends StatefulWidget {
+  final Order order;
+  final VoidCallback onTap;
+  final VoidCallback onStatusAdvance;
+
+  const _OrderCard({
+    required this.order,
+    required this.onTap,
+    required this.onStatusAdvance,
+  });
+
+  @override
+  State<_OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends State<_OrderCard> {
+  final AppTtsService _tts = AppTtsService();
+
+  @override
+  void initState() {
+    super.initState();
+    _tts.onStateChanged = () {
+      if (mounted) setState(() {});
+    };
+  }
+
+  @override
+  void dispose() {
+    _tts.dispose();
+    super.dispose();
+  }
+
+  // A short spoken summary of the order — enough for an artisan to identify
+  // it by ear from a list, without reading. Not every field on the card,
+  // just what identifies and matters: what, who, where, how much, status.
+  Future<void> _speakSummary() async {
+    if (_tts.isSpeaking) {
+      await _tts.stop();
+      return;
+    }
+    final order = widget.order;
+    final locale = Localizations.maybeLocaleOf(context)?.languageCode ?? 'en';
+    final isHindi = locale == 'hi';
+    final lead = TtsPageGuides.orderCardLead
+        .forLanguage(locale);
+
+    // Built in the app language rather than always in English: the status
+    // label is already translated, so an English carrier sentence around a
+    // Hindi word — read by whichever single voice is selected — mispronounces
+    // one half or the other whichever way it is spoken.
+    final productTitle = (isHindi && order.productTitleHi != null)
+        ? order.productTitleHi!
+        : order.productTitle;
+
+    final summary = isHindi
+        ? '$productTitle का ऑर्डर, ${order.buyerCity} से '
+            '${order.buyerName} की ओर से। राशि '
+            '${order.amount.toStringAsFixed(0)} रुपये। स्थिति: '
+            '${order.status.labelKey.tr()}।'
+        : 'Order for ${order.productTitle}, from ${order.buyerName} in '
+            '${order.buyerCity}. Amount: ${order.amount.toStringAsFixed(0)} '
+            'rupees. Status: ${order.status.labelKey.tr()}.';
+
+    final result = await _tts.speak(
+      lead + summary,
+      languageCode: context.locale.languageCode,
+    );
+
+    if (result == TtsResult.voiceUnavailable && mounted) {
+      final opened = await _tts.openVoiceDownloadScreen();
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('voice_download_settings_hint'.tr()),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final order = widget.order;
+    final onTap = widget.onTap;
+    final onStatusAdvance = widget.onStatusAdvance;
+    final canAdvance = order.status.next != null;
+    final isHindi = (Localizations.maybeLocaleOf(context)?.languageCode ??
+            EasyLocalization.of(context)?.locale.languageCode) ==
+        'hi';
+    final displayProductTitle = (isHindi && order.productTitleHi != null)
+        ? order.productTitleHi!
+        : order.productTitle;
+
+    return Dismissible(
+      key: ValueKey('${order.id}_${order.status}'),
+      direction: canAdvance ? DismissDirection.startToEnd : DismissDirection.none,
+      background: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.itemSpacing),
+        decoration: BoxDecoration(
+          color: AppColors.terracottaLight,
+          borderRadius: BorderRadius.circular(AppRadii.card),
+        ),
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: AppSpacing.lg),
+        child: Row(
+          children: [
+            const Icon(Icons.arrow_forward, color: AppColors.terracottaDark),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              'mark_as_status'.tr(namedArgs: {
+                'status': order.status.next?.labelKey.tr() ?? '',
+              }),
+              style: AppTextStyles.labelSmall.copyWith(color: AppColors.terracottaDark),
+            ),
+          ],
+        ),
+      ),
+      confirmDismiss: (_) async {
+        onStatusAdvance();
+        return false;
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.itemSpacing),
+        decoration: BoxDecoration(
+          color: AppColors.cardSurface,
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          border: Border.all(
+            color: AppColors.line,
+            width: 1.0,
+          ),
+          boxShadow: AppElevation.cardShadow,
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          child: Padding(
+            padding: const EdgeInsets.all(14.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 46x46 Thumbnail matching mockup
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: AppColors.parchmentDeep,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  alignment: Alignment.center,
+                  child: order.productImagePath.isNotEmpty
+                      ? AppImage(
+                          imageUrl: order.productImagePath,
+                          width: 46,
+                          height: 46,
+                          fit: BoxFit.cover,
+                        )
+                      : _buildCategoryThumb(order.productCategory),
+                ),
+                const SizedBox(width: 12),
+
+                // Card body
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Row 1: Product name + Status flag
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              displayProductTitle,
+                              style: AppTextStyles.headlineSmall.copyWith(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.ink,
+                                height: 1.3,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          SpeakerAffordance.compact(
+                            isSpeaking: _tts.isSpeaking,
+                            onTap: _speakSummary,
+                          ),
+                          const SizedBox(width: 4),
+                          _StatusBadge(status: order.status),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+
+                      // Meta row: User + Location
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.person_outline,
+                            size: 13,
+                            color: AppColors.inkSoft,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              order.buyerName,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.inkSoft,
+                                fontSize: 12.5,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '•',
+                            style: TextStyle(
+                              color: AppColors.inkFaint,
+                              fontSize: 10,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              order.buyerCity,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.inkSoft,
+                                fontSize: 12.5,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Price row: Price x Quantity + Time
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '₹${order.amount.toStringAsFixed(0)}',
+                                  style: AppTextStyles.labelMedium.copyWith(
+                                    color: AppColors.terracottaDark,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14.5,
+                                  ),
+                                ),
+                                if (order.quantity > 1) ...[
+                                  const TextSpan(text: ' '),
+                                  TextSpan(
+                                    text: '× ${order.quantity}',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.inkSoft,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Text(
+                            _formatDate(order.placedAt),
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.inkFaint,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryThumb(String category) {
+    final cat = category.toLowerCase();
+    if (cat.contains('pot') || cat.contains('clay') || cat.contains('ceramic')) {
+      return CustomPaint(
+        size: const Size(22, 22),
+        painter: CraftCategoryIcons.pottery(color: AppColors.terracottaDark),
+      );
+    }
+    if (cat.contains('silk') || cat.contains('saree') || cat.contains('textile') || cat.contains('cloth')) {
+      return CustomPaint(
+        size: const Size(22, 22),
+        painter: CraftCategoryIcons.textile(color: AppColors.terracottaDark),
+      );
+    }
+    if (cat.contains('wood') || cat.contains('toy') || cat.contains('carv')) {
+      return CustomPaint(
+        size: const Size(22, 22),
+        painter: CraftCategoryIcons.woodwork(color: AppColors.terracottaDark),
+      );
+    }
+    if (cat.contains('jewel') || cat.contains('metal') || cat.contains('brass')) {
+      return CustomPaint(
+        size: const Size(22, 22),
+        painter: CraftCategoryIcons.jewelry(color: AppColors.terracottaDark),
+      );
+    }
+    return const Icon(Icons.brush, size: 22, color: AppColors.terracottaDark);
+  }
+
+  String _formatDate(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inHours < 24) return 'hours_ago'.tr(namedArgs: {'hours': '${diff.inHours}'});
+    if (diff.inDays == 1) return 'yesterday'.tr();
+    return '${dt.day}/${dt.month}';
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final OrderStatus status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color bg;
+    Color fg;
+    IconData icon;
+
+    switch (status) {
+      case OrderStatus.newOrder:
+        bg = AppColors.statusActionBg;
+        fg = AppColors.statusActionFg;
+        icon = Icons.auto_awesome;
+        break;
+      case OrderStatus.packed:
+        bg = AppColors.statusPendingBg;
+        fg = AppColors.statusPendingFg;
+        icon = Icons.inventory_2_outlined;
+        break;
+      case OrderStatus.shipped:
+        bg = AppColors.statusSuccessBg;
+        fg = AppColors.statusSuccessFg;
+        icon = Icons.local_shipping_outlined;
+        break;
+      case OrderStatus.delivered:
+        bg = AppColors.statusSuccessBg;
+        fg = AppColors.statusSuccessFg;
+        icon = Icons.check_circle_outline;
+        break;
+      case OrderStatus.cancelled:
+        bg = AppColors.line;
+        fg = AppColors.inkSoft;
+        icon = Icons.cancel_outlined;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppRadii.chip),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: fg),
+          const SizedBox(width: 4),
+          Text(
+            status.labelKey.tr(),
+            style: AppTextStyles.labelSmall.copyWith(
+              color: fg,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyOrders extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return EmptyCraftState(
+      title: 'no_orders_title'.tr(),
+      subtitle: 'no_orders_desc'.tr(),
+    );
+  }
+}
+
+class _EmptyInquiries extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return EmptyCraftState(
+      title: 'no_inquiries_title'.tr(),
+      subtitle: 'no_inquiries_desc'.tr(),
+    );
+  }
+}
+
+class _InquiryCard extends StatelessWidget {
+  final BuyerInquiry inquiry;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
+
+  const _InquiryCard({
+    required this.inquiry,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Color statusBg;
+    Color statusFg;
+    IconData statusIcon;
+
+    switch (inquiry.status) {
+      case BuyerInquiryStatus.pending:
+        statusBg = AppColors.statusPendingBg;
+        statusFg = AppColors.statusPendingFg;
+        statusIcon = Icons.hourglass_top_rounded;
+        break;
+      case BuyerInquiryStatus.accepted:
+        statusBg = AppColors.statusSuccessBg;
+        statusFg = AppColors.statusSuccessFg;
+        statusIcon = Icons.check_circle_outline_rounded;
+        break;
+      case BuyerInquiryStatus.rejected:
+        statusBg = AppColors.line;
+        statusFg = AppColors.inkSoft;
+        statusIcon = Icons.cancel_outlined;
+        break;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.cardPadding),
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      inquiry.buyerName,
+                      style: AppTextStyles.titleSmall.copyWith(
+                        color: AppColors.ink,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (inquiry.buyerOrganization.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.business, size: 13, color: AppColors.inkFaint),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              inquiry.buyerOrganization,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.inkSoft,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(AppRadii.chip),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(statusIcon, size: 12, color: statusFg),
+                    const SizedBox(width: 4),
+                    Text(
+                      inquiry.status.label,
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: statusFg,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const Divider(color: AppColors.line, height: 1),
+          const SizedBox(height: AppSpacing.sm),
+          // Quantity and Target Price
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.linenMuted,
+                  borderRadius: BorderRadius.circular(AppRadii.xs),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.inventory_2_outlined, size: 13, color: AppColors.terracotta),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${inquiry.quantity} Units',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.terracottaDark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (inquiry.targetPricePerUnit != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.xs),
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: Text(
+                    'Target: ₹${inquiry.targetPricePerUnit!.toStringAsFixed(0)}/ea',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.inkSoft,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+              if (inquiry.craftType.isNotEmpty) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      inquiry.craftType,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.inkFaint,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (inquiry.message.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              inquiry.message,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.inkSoft,
+              ),
+            ),
+          ],
+          if (inquiry.buyerPhone.isNotEmpty || inquiry.buyerLocation.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                if (inquiry.buyerLocation.isNotEmpty)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 12, color: AppColors.inkFaint),
+                      const SizedBox(width: 2),
+                      Text(
+                        inquiry.buyerLocation,
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.inkFaint, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                if (inquiry.buyerPhone.isNotEmpty)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.phone_outlined, size: 12, color: AppColors.inkFaint),
+                      const SizedBox(width: 2),
+                      Text(
+                        inquiry.buyerPhone,
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.inkFaint, fontSize: 11),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+          if (inquiry.artisanResponseNote.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.linenMuted,
+                borderRadius: BorderRadius.circular(AppRadii.xs),
+              ),
+              child: Text(
+                'Artisan Note: ${inquiry.artisanResponseNote}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.oliveDark,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+          if (inquiry.status == BuyerInquiryStatus.pending) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: onReject,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    side: const BorderSide(color: AppColors.line),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.button)),
+                  ),
+                  child: Text(
+                    'inquiry_decline_btn'.tr(),
+                    style: AppTextStyles.labelSmall.copyWith(color: AppColors.inkSoft),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                ElevatedButton(
+                  onPressed: onAccept,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: AppColors.oliveDark,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.button)),
+                  ),
+                  child: Text(
+                    'inquiry_accept_btn'.tr(),
+                    style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

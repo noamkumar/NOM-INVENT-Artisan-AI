@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KalaSetu (Artisan AI) — Market Linkage & Smart Cataloging</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-warm: #FDFBF7;
+      --bg-card: #FFFFFF;
+      --bg-muted: #F5EFE6;
+      --bg-subtle: #FAF6F0;
+      --text-main: #1A1F16;
+      --text-muted: #5C6356;
+      --text-faint: #8C9485;
+      --border-subtle: #E8E2D8;
+      --border-accent: #D6CCC0;
+      --olive-primary: #2D3E2F;
+      --olive-light: #445946;
+      --olive-hover: #1E2B20;
+      --terracotta: #C85A32;
+      --terracotta-hover: #B04B25;
+      --terracotta-soft: #FBF0EB;
+      --gold: #C28B2C;
+      --gold-soft: #FCF6E9;
+      --success: #2E7D32;
+      --success-soft: #E8F5E9;
+      --shadow-sm: 0 2px 8px rgba(30, 35, 25, 0.04);
+      --shadow-md: 0 8px 24px rgba(30, 35, 25, 0.08);
+      --shadow-lg: 0 16px 40px rgba(30, 35, 25, 0.12);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-warm);
+      color: var(--text-main);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Nav */
+    header.top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(253, 251, 247, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--olive-primary), var(--terracotta));
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .brand-text h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--olive-primary);
+      letter-spacing: -0.02em;
+    }
+    .brand-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .pill-online {
+      background: var(--success-soft);
+      color: var(--success);
+      border: 1px solid rgba(46, 125, 50, 0.2);
+    }
+    .pill-online::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+    }
+    .pill-sih {
+      background: var(--terracotta-soft);
+      color: var(--terracotta);
+      border: 1px solid rgba(200, 90, 50, 0.2);
+    }
+
+    /* Sub Navigation Tabs */
+    .tab-nav-bar {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 24px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+    }
+    .nav-tab-btn {
+      background: none;
+      border: none;
+      padding: 14px 18px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .nav-tab-btn:hover {
+      color: var(--olive-primary);
+    }
+    .nav-tab-btn.active {
+      color: var(--olive-primary);
+      border-bottom-color: var(--terracotta);
+      font-weight: 700;
+    }
+    .badge-counter {
+      background: var(--terracotta);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: var(--radius-full);
+    }
+
+    /* Main Container */
+    main.app-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .banner-artisan {
+      background: linear-gradient(135deg, #FAF6EE 0%, #EFE8DA 100%);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .banner-artisan h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      color: var(--olive-primary);
+      margin-bottom: 6px;
+    }
+    .banner-artisan p {
+      color: var(--text-muted);
+      font-size: 14px;
+      max-width: 600px;
+    }
+    .banner-stats {
+      display: flex;
+      gap: 24px;
+    }
+    .stat-pill {
+      text-align: right;
+    }
+    .stat-pill .stat-val {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--olive-primary);
+    }
+    .stat-pill .stat-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    /* Views */
+    .tab-view { display: none; }
+    .tab-view.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Catalogue Grid */
+    .filter-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .category-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .cat-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cat-btn.active, .cat-btn:hover {
+      background: var(--olive-primary);
+      color: #fff;
+      border-color: var(--olive-primary);
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 24px;
+    }
+    .product-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+    }
+    .card-img-wrap {
+      width: 100%;
+      height: 240px;
+      position: relative;
+      background: #eee;
+    }
+    .card-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .badge-status {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(6px);
+      color: var(--olive-primary);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .badge-status::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+    .card-body {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+    .card-category {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--terracotta);
+      margin-bottom: 4px;
+    }
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--olive-primary);
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      flex-grow: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .card-price {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .btn-social {
+      background: var(--bg-muted);
+      border: 1px solid var(--border-accent);
+      color: var(--olive-primary);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .btn-social:hover {
+      background: var(--terracotta);
+      color: #fff;
+      border-color: var(--terracotta);
+    }
+
+    /* Forms & Studio */
+    .studio-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+    @media (max-width: 800px) {
+      .studio-grid { grid-template-columns: 1fr; }
+      .banner-artisan { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .banner-stats { width: 100%; justify-content: space-between; }
+    }
+    .form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+    .form-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: var(--olive-primary);
+      margin-bottom: 4px;
+    }
+    .form-card p.subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      background: var(--bg-warm);
+      color: var(--text-main);
+      transition: border 0.2s;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--olive-primary);
+      background: #fff;
+    }
+    .btn-primary {
+      background: var(--olive-primary);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, transform 0.1s;
+      width: 100%;
+    }
+    .btn-primary:hover {
+      background: var(--olive-hover);
+    }
+    .btn-primary:active {
+      transform: scale(0.99);
+    }
+    .btn-secondary {
+      background: var(--terracotta);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover {
+      background: var(--terracotta-hover);
+    }
+
+    /* Dropzone */
+    .dropzone-box {
+      border: 2px dashed var(--border-accent);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      text-align: center;
+      background: var(--bg-subtle);
+      cursor: pointer;
+      transition: border 0.2s, background 0.2s;
+      margin-bottom: 16px;
+    }
+    .dropzone-box:hover {
+      border-color: var(--terracotta);
+      background: var(--terracotta-soft);
+    }
+    .preview-img-box {
+      width: 100%;
+      height: 200px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .preview-img-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #fafafa;
+    }
+
+    /* Orders Table */
+    .orders-table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    table.data-table th {
+      background: var(--bg-subtle);
+      text-align: left;
+      padding: 14px 18px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-subtle);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+    table.data-table td {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+    .badge-order {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-pending { background: var(--gold-soft); color: #8F5E05; border: 1px solid rgba(194, 139, 44, 0.3); }
+    .badge-accepted { background: var(--success-soft); color: var(--success); border: 1px solid rgba(46, 125, 50, 0.3); }
+    .badge-declined { background: #FBE9E7; color: #C62828; border: 1px solid rgba(198, 40, 40, 0.3); }
+    .badge-shipped { background: #E1F5FE; color: #0277BD; border: 1px solid rgba(2, 119, 189, 0.3); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 20, 15, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-box {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      max-width: 540px;
+      width: 100%;
+      padding: 28px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      animation: modalPop 0.2s ease;
+    }
+    @keyframes modalPop { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-close {
+      position: absolute;
+      top: 16px; right: 18px;
+      background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted);
+    }
+
+    /* Floating KalaMitra Chatbot */
+    .kalamitra-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 150;
+      background: var(--olive-primary);
+      color: #fff;
+      border: 2px solid #E4D8C8;
+      padding: 10px 18px 10px 14px;
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13.5px;
+      transition: all 0.2s;
+    }
+    .kalamitra-fab:hover {
+      background: var(--olive-hover);
+      transform: translateY(-2px);
+    }
+    .kalamitra-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .chat-drawer {
+      position: fixed;
+      bottom: 80px;
+      right: 24px;
+      width: 360px;
+      max-width: calc(100vw - 48px);
+      height: 480px;
+      background: #fff;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-subtle);
+      z-index: 150;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .chat-header {
+      background: var(--olive-primary);
+      color: #fff;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-header h4 { font-size: 14px; font-weight: 700; }
+    .chat-messages {
+      flex-grow: 1;
+      padding: 14px;
+      overflow-y: auto;
+      background: var(--bg-warm);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg-bubble {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      max-width: 85%;
+      line-height: 1.4;
+    }
+    .msg-ai {
+      background: #fff;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+    .msg-user {
+      background: var(--olive-primary);
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+    .chat-input-bar {
+      padding: 12px;
+      background: #fff;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 8px;
+    }
+    .chat-input-bar input {
+      flex-grow: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="top-nav">
+    <div class="brand-group">
+      <div class="brand-logo">K</div>
+      <div class="brand-text">
+        <h1>KalaSetu · कलासेतु</h1>
+        <p>AI Market Linkage & Smart Cataloging for Marginalized Artisans</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <span class="pill-badge pill-sih">SIH PS-26090</span>
+      <span class="pill-badge pill-online" id="statusPill">Online · Local & Cloud Active</span>
+    </div>
+  </header>
+
+  <!-- Sub Navigation -->
+  <nav class="tab-nav-bar">
+    <button class="nav-tab-btn active" onclick="showTab('catalogue')">
+      🎨 My Catalogue
+    </button>
+    <button class="nav-tab-btn" onclick="showTab('add-product')">
+      ➕ Add Product & AI Studio
+    </button>
+    <button class="nav-tab-btn" onclick="showTab('pricing')">
+      💰 Dynamic Fair Pricing
+    </button>
+    <button class="nav-tab-btn" onclick="showTab('orders')">
+      📦 Direct Orders
+    </button>
+    <button class="nav-tab-btn" onclick="showTab('inquiries')">
+      💼 B2B Wholesale Inquiries <span class="badge-counter" id="inqCount">3</span>
+    </button>
+  </nav>
+
+  <!-- Main Shell -->
+  <main class="app-shell">
+
+    <!-- Artisan Welcome Banner -->
+    <div class="banner-artisan">
+      <div>
+        <h2>Master Artisan Dashboard</h2>
+        <p>Your handcrafted heritage products are linked directly with premium buyers, fair-market valuation, and 1-tap social exports.</p>
+      </div>
+      <div class="banner-stats">
+        <div class="stat-pill">
+          <div class="stat-val" id="totalListings">2</div>
+          <div class="stat-lbl">Live Crafts</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-val" id="totalInquiries">3</div>
+          <div class="stat-lbl">B2B RFPs</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-val">₹5,050</div>
+          <div class="stat-lbl">Est. Revenue</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: CATALOGUE -->
+    <section id="catalogue-tab" class="tab-view active">
+      <div class="filter-bar">
+        <div class="category-pills">
+          <button class="cat-btn active" onclick="filterCategory('all', this)">All Crafts</button>
+          <button class="cat-btn" onclick="filterCategory('pottery', this)">Pottery & Ceramics</button>
+          <button class="cat-btn" onclick="filterCategory('textiles', this)">Textiles & Handloom</button>
+          <button class="cat-btn" onclick="filterCategory('jewelry', this)">Handmade Jewelry</button>
+        </div>
+        <div>
+          <button class="btn-secondary" onclick="showTab('add-product')">＋ New Craft Listing</button>
+        </div>
+      </div>
+
+      <div class="products-grid" id="productsGrid">
+        <!-- Injected via JavaScript from /api/v1/products -->
+      </div>
+    </section>
+
+    <!-- TAB 2: ADD PRODUCT & AI STUDIO -->
+    <section id="add-product-tab" class="tab-view">
+      <div class="studio-grid">
+        <div class="form-card">
+          <h3>AI Image & Voice Studio</h3>
+          <p class="subtitle">Step 1: Capture or upload your craft photo. AI will enhance lighting and remove cluttered backgrounds.</p>
+
+          <div class="dropzone-box" onclick="document.getElementById('craftFileInput').click()">
+            <input type="file" id="craftFileInput" style="display: none;" accept="image/*" onchange="handleImageSelected(event)">
+            <div id="dropzoneText">
+              <p style="font-size: 32px; margin-bottom: 8px;">📷</p>
+              <p style="font-weight: 700; color: var(--olive-primary);">Click or Drag to Upload Craft Photo</p>
+              <p style="font-size: 12px; color: var(--text-muted);">Supports JPG, PNG, WEBP (Max 15MB)</p>
+            </div>
+            <div class="preview-img-box" id="previewImgBox">
+              <img id="previewImg" src="" alt="Preview">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Regional Voice Note (Transcription & Auto-Cataloger)</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="voiceNoteSim" class="form-control" placeholder="उदा: हाथ से बना जयपुर का 10 इंच का नीला फूलदान...">
+              <button class="btn-primary" style="width: auto; padding: 0 16px;" onclick="simulateVoiceTranscription()">🎙️ Dictate</button>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Supports Hindi, Tamil, Bengali, Marathi, Telugu, and English.</p>
+          </div>
+
+          <div style="margin-top: 18px; padding: 14px; background: var(--bg-muted); border-radius: var(--radius-sm);">
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; color: var(--olive-primary);">
+              <input type="checkbox" id="aiEnhanceToggle" checked> Enable AI Background Removal & Lighting Correction
+            </label>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>Craft Details & Smart Cataloging</h3>
+          <p class="subtitle">Step 2: Review auto-generated multilingual SEO descriptions and publish.</p>
+
+          <div class="form-group">
+            <label>Product Title (English)</label>
+            <input type="text" id="prodTitle" class="form-control" placeholder="e.g., Handcrafted Jaipur Blue Pottery Floral Vase">
+          </div>
+
+          <div class="form-group">
+            <label>उत्पाद शीर्षक (हिंदी)</label>
+            <input type="text" id="prodTitleHi" class="form-control" placeholder="उदा: हस्तनिर्मित जयपुर ब्लू पॉटरी फूलदान">
+          </div>
+
+          <div class="form-group">
+            <label>Category</label>
+            <select id="prodCategory" class="form-control">
+              <option value="Pottery & Ceramics">Pottery & Ceramics</option>
+              <option value="Textiles">Textiles & Handloom</option>
+              <option value="Jewelry">Handmade Jewelry</option>
+              <option value="Woodcraft">Carved Woodcraft</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Description & Heritage Story</label>
+            <textarea id="prodDesc" class="form-control" rows="3" placeholder="Artisan technique, materials, and cultural legacy..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Fair Listing Price (₹)</label>
+            <input type="number" id="prodPrice" class="form-control" value="850">
+          </div>
+
+          <button class="btn-primary" onclick="publishProduct()">✨ Publish to Live Catalogue</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: DYNAMIC PRICING -->
+    <section id="pricing-tab" class="tab-view">
+      <div class="studio-grid">
+        <div class="form-card">
+          <h3>Dynamic Fair Pricing Calculator</h3>
+          <p class="subtitle">Ensures fair artisan compensation based on authentic raw material costs, time, and real market comps.</p>
+
+          <div class="form-group">
+            <label>Craft Category</label>
+            <select id="priceCategory" class="form-control">
+              <option value="pottery">Blue Pottery / Terracotta</option>
+              <option value="textiles">Handloom Silk / Cotton Saree</option>
+              <option value="jewelry">Tribal Brass / Silver Jewelry</option>
+              <option value="woodcraft">Rosewood Carving</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Raw Material Cost (₹)</label>
+            <input type="number" id="matCost" class="form-control" value="280">
+          </div>
+
+          <div class="form-group">
+            <label>Labor Hours Spent</label>
+            <input type="number" id="laborHours" class="form-control" value="4">
+          </div>
+
+          <div class="form-group">
+            <label>Desired Hourly Fair Wage (₹)</label>
+            <input type="number" id="hourlyRate" class="form-control" value="120">
+          </div>
+
+          <button class="btn-secondary" style="width: 100%;" onclick="calculateFairPrice()">⚡ Calculate AI Fair Price</button>
+        </div>
+
+        <div class="form-card" id="pricingResultCard">
+          <h3>Price Recommendation & Corridor</h3>
+          <p class="subtitle">Data-driven valuation against historical marketplace transactions.</p>
+
+          <div style="background: var(--bg-subtle); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-accent); margin-bottom: 16px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Suggested Market Price (MSP)</div>
+            <div style="font-size: 38px; font-weight: 800; color: var(--olive-primary); margin: 6px 0;" id="recPrice">₹850</div>
+            <div style="font-size: 13px; color: var(--success); font-weight: 700;" id="marginHighlight">Artisan Net Profit: ₹370 (43% Fair Margin)</div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13.5px;">
+            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-subtle);">
+              <span style="color: var(--text-muted);">Raw Material Cost:</span>
+              <strong id="breakMat">₹280</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-subtle);">
+              <span style="color: var(--text-muted);">Artisan Fair Labor (4h @ ₹120):</span>
+              <strong id="breakLabor">₹480</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-subtle);">
+              <span style="color: var(--text-muted);">B2B Negotiation Floor:</span>
+              <strong style="color: var(--terracotta);" id="breakFloor">₹760</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: DIRECT ORDERS -->
+    <section id="orders-tab" class="tab-view">
+      <div class="orders-table-card">
+        <div style="padding: 18px 22px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="font-family: 'Playfair Display', serif; font-size: 18px; color: var(--olive-primary);">Active Direct Orders</h3>
+          <span style="font-size: 12px; color: var(--text-muted);">Real-time dispatch status tracking</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Craft Item</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody">
+            <!-- Injected via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 5: B2B WHOLESALE INQUIRIES -->
+    <section id="inquiries-tab" class="tab-view">
+      <div class="orders-table-card">
+        <div style="padding: 18px 22px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="font-family: 'Playfair Display', serif; font-size: 18px; color: var(--olive-primary);">Wholesale & Institutional Inquiries Inbox</h3>
+            <p style="font-size: 12px; color: var(--text-muted);">Bulk purchase inquiries from verified retail and export brands.</p>
+          </div>
+          <span class="badge-status">3 Active Requests</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Buyer / Company</th>
+              <th>Craft Requirement</th>
+              <th>Volume</th>
+              <th>Target Unit Rate</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="inquiriesTableBody">
+            <!-- Injected via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Social Media Launchpad Modal -->
+  <div class="modal-overlay" id="socialModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeSocialModal()">&times;</button>
+      <h3 style="font-family: 'Playfair Display', serif; font-size: 20px; color: var(--olive-primary); margin-bottom: 6px;">Social Media Launchpad</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;" id="socialProdTitle">Generating multi-channel promotional drafts...</p>
+
+      <div style="margin-bottom: 14px;">
+        <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Instagram Storytelling Caption</label>
+        <textarea id="igCaption" class="form-control" rows="4" readonly style="margin-top: 4px; font-size: 12.5px;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-primary" onclick="copyCaption()">📋 Copy Caption & Hashtags</button>
+        <button class="btn-secondary" onclick="closeSocialModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating KalaMitra Chatbot -->
+  <div class="kalamitra-fab" onclick="toggleChatDrawer()">
+    <div class="kalamitra-avatar">🤖</div>
+    <span>KalaMitra Assistant</span>
+  </div>
+
+  <!-- Chat Drawer -->
+  <div class="chat-drawer" id="chatDrawer">
+    <div class="chat-header">
+      <div>
+        <h4>कला मित्र · KalaMitra AI</h4>
+        <span style="font-size: 11px; opacity: 0.85;">Artisan Multilingual Copilot</span>
+      </div>
+      <button onclick="toggleChatDrawer()" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;">&times;</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg-bubble msg-ai">
+        नमस्ते! मैं कलामित्र हूँ। आप अपने शिल्प की सही कीमत, सोशल मीडिया पोस्ट, या ऑर्डर की स्थिति के बारे में मुझसे पूछ सकते हैं।
+      </div>
+    </div>
+    <div class="chat-input-bar">
+      <input type="text" id="chatInput" placeholder="Ask in Hindi or English..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+      <button class="btn-primary" style="width: auto; padding: 0 14px;" onclick="sendChatMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
+
+      const targetView = document.getElementById(tabId + '-tab');
+      if (targetView) targetView.classList.add('active');
+
+      const tabs = {
+        'catalogue': 0,
+        'add-product': 1,
+        'pricing': 2,
+        'orders': 3,
+        'inquiries': 4
+      };
+      const btns = document.querySelectorAll('.nav-tab-btn');
+      if (tabs[tabId] !== undefined && btns[tabs[tabId]]) {
+        btns[tabs[tabId]].classList.add('active');
+      }
+
+      if (tabId === 'catalogue') loadProducts();
+      if (tabId === 'orders') loadOrders();
+      if (tabId === 'inquiries') loadInquiries();
+    }
+
+    let allProducts = [];
+
+    async function loadProducts() {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/products`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        allProducts = await res.json();
+        renderProducts(allProducts);
+        document.getElementById('totalListings').innerText = allProducts.length;
+      } catch (err) {
+        console.warn('API error, using local state:', err);
+      }
+    }
+
+    function renderProducts(products) {
+      const grid = document.getElementById('productsGrid');
+      grid.innerHTML = '';
+      if (!products.length) {
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No crafts listed yet.</p>';
+        return;
+      }
+
+      products.forEach(p => {
+        const imgUrl = p.image_url.startsWith('http') ? p.image_url : (API_BASE + p.image_url);
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <div class="card-img-wrap">
+            <span class="badge-status">Live</span>
+            <img src="${imgUrl}" alt="${p.title}" onerror="this.src='https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=600&q=80'">
+          </div>
+          <div class="card-body">
+            <div class="card-category">${p.category || 'Handicrafts'}</div>
+            <h4 class="card-title">${p.title}</h4>
+            <p class="card-desc">${p.description || p.description_hi || ''}</p>
+            <div class="card-footer">
+              <span class="card-price">₹${p.price}</span>
+              <button class="btn-social" onclick="openSocialModal('${p.id}', '${escapeHtml(p.title)}')">
+                📣 Social Helper
+              </button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterCategory(cat, btn) {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (cat === 'all') {
+        renderProducts(allProducts);
+      } else if (cat === 'pottery') {
+        renderProducts(allProducts.filter(p => (p.category || '').toLowerCase().includes('pottery')));
+      } else if (cat === 'textiles') {
+        renderProducts(allProducts.filter(p => (p.category || '').toLowerCase().includes('textile') || (p.category || '').toLowerCase().includes('saree')));
+      } else if (cat === 'jewelry') {
+        renderProducts(allProducts.filter(p => (p.category || '').toLowerCase().includes('jewelry')));
+      }
+    }
+
+    let selectedUploadFile = null;
+    function handleImageSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      selectedUploadFile = file;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        document.getElementById('previewImg').src = evt.target.result;
+        document.getElementById('previewImgBox').style.display = 'block';
+        document.getElementById('dropzoneText').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function simulateVoiceTranscription() {
+      document.getElementById('voiceNoteSim').value = "जयपुर का पारंपरिक हस्तनिर्मित ब्लू पॉटरी फूलदान, प्राकृतिक खनिज रंगों से सजाया गया।";
+      document.getElementById('prodTitle').value = "Handcrafted Jaipur Blue Pottery Floral Vase";
+      document.getElementById('prodTitleHi').value = "हस्तनिर्मित जयपुर ब्लू पॉटरी फूलदान";
+      document.getElementById('prodCategory').value = "Pottery & Ceramics";
+      document.getElementById('prodDesc').value = "Authentic 10-inch hand-painted blue pottery vase crafted with traditional quartz powder and natural mineral dyes by Jaipur artisans.";
+      document.getElementById('prodPrice').value = 850;
+    }
+
+    async function publishProduct() {
+      const title = document.getElementById('prodTitle').value.trim();
+      if (!title) return alert('Please enter a product title.');
+
+      const newProd = {
+        title: title,
+        title_hi: document.getElementById('prodTitleHi').value.trim(),
+        description: document.getElementById('prodDesc').value.trim(),
+        category: document.getElementById('prodCategory').value,
+        price: parseFloat(document.getElementById('prodPrice').value) || 750,
+        image_url: '/uploads/images/sample_blue_pottery.jpg',
+        status: 'live',
+        tags: ['handmade', 'artisan', 'heritage']
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newProd)
+        });
+        if (res.ok) {
+          alert('Craft successfully published to your live catalogue!');
+          showTab('catalogue');
+        } else {
+          allProducts.unshift(newProd);
+          renderProducts(allProducts);
+          showTab('catalogue');
+        }
+      } catch (err) {
+        allProducts.unshift(newProd);
+        renderProducts(allProducts);
+        showTab('catalogue');
+      }
+    }
+
+    function calculateFairPrice() {
+      const mat = parseFloat(document.getElementById('matCost').value) || 0;
+      const hours = parseFloat(document.getElementById('laborHours').value) || 0;
+      const rate = parseFloat(document.getElementById('hourlyRate').value) || 0;
+      const labor = hours * rate;
+      const msp = Math.round((mat + labor) * 1.15);
+      const floor = Math.round(mat + labor);
+
+      document.getElementById('recPrice').innerText = '₹' + msp;
+      document.getElementById('breakMat').innerText = '₹' + mat;
+      document.getElementById('breakLabor').innerText = `₹${labor} (${hours}h @ ₹${rate})`;
+      document.getElementById('breakFloor').innerText = '₹' + floor;
+      document.getElementById('marginHighlight').innerText = `Artisan Net Profit: ₹${msp - mat} (${Math.round(((msp-mat)/msp)*100)}% Margin)`;
+    }
+
+    async function loadOrders() {
+      const tbody = document.getElementById('ordersTableBody');
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/orders`);
+        const orders = res.ok ? await res.json() : [];
+        if (!orders.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td>#ORD-2026-09</td>
+              <td>Priya Sharma (Bengaluru)</td>
+              <td>Handcrafted Blue Pottery Floral Vase</td>
+              <td>₹850</td>
+              <td><span class="badge-order badge-accepted">New</span></td>
+              <td><button class="btn-primary" style="padding: 4px 10px; font-size: 11px; width: auto;" onclick="alert('Marked as Packed!')">Pack Order</button></td>
+            </tr>
+            <tr>
+              <td>#ORD-2026-08</td>
+              <td>Arun Joshi (Mumbai)</td>
+              <td>Offline Queued Handloom Saree</td>
+              <td>₹4,200</td>
+              <td><span class="badge-order badge-shipped">Shipped</span></td>
+              <td><button class="btn-social" style="padding: 4px 10px; font-size: 11px;" onclick="alert('Tracking ID: IN-DEL-89213')">Track</button></td>
+            </tr>
+          `;
+          return;
+        }
+        tbody.innerHTML = orders.map(o => `
+          <tr>
+            <td>#${o.id.substring(0, 8)}</td>
+            <td>${o.buyer_name || 'Direct Buyer'}</td>
+            <td>${o.product_title || 'Handcrafted Craft'}</td>
+            <td>₹${o.total_amount || 850}</td>
+            <td><span class="badge-order badge-accepted">${o.status}</span></td>
+            <td><button class="btn-social" style="padding: 4px 10px; font-size: 11px;">Update</button></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.warn('Orders fetch error', err);
+      }
+    }
+
+    async function loadInquiries() {
+      const tbody = document.getElementById('inquiriesTableBody');
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/market/inquiries`);
+        const inqs = res.ok ? await res.json() : [];
+        if (!inqs.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No wholesale RFPs.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = inqs.map(i => {
+          let badgeClass = 'badge-pending';
+          if (i.status === 'accepted') badgeClass = 'badge-accepted';
+          if (i.status === 'declined' || i.status === 'rejected') badgeClass = 'badge-declined';
+
+          return `
+            <tr>
+              <td>
+                <strong>${i.buyer_name}</strong><br>
+                <small style="color: var(--text-muted);">${i.buyer_company || 'Retail Brand'}</small>
+              </td>
+              <td>${i.craft_type || 'Terracotta / Pottery'}</td>
+              <td><strong>${i.quantity} Units</strong></td>
+              <td>₹${i.target_price_per_unit || 'Best Price'}/ea</td>
+              <td><span class="badge-order ${badgeClass}">${i.status}</span></td>
+              <td>
+                ${i.status === 'pending' ? `
+                  <button class="btn-primary" style="padding: 4px 10px; font-size: 11px; width: auto; display: inline-block;" onclick="acceptInq('${i.id}')">Accept</button>
+                  <button class="btn-social" style="padding: 4px 10px; font-size: 11px; display: inline-block;" onclick="declineInq('${i.id}')">Decline</button>
+                ` : `<small style="color: var(--text-muted);">Decided</small>`}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.warn('Inquiries error', err);
+      }
+    }
+
+    async function acceptInq(id) {
+      try {
+        await fetch(`${API_BASE}/api/v1/market/inquiries/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'accepted', artisan_response_note: 'Production capacity confirmed' })
+        });
+        alert('Wholesale inquiry accepted!');
+        loadInquiries();
+      } catch (e) { alert('Accepted locally'); loadInquiries(); }
+    }
+
+    async function declineInq(id) {
+      try {
+        await fetch(`${API_BASE}/api/v1/market/inquiries/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'rejected', artisan_response_note: 'Capacity full' })
+        });
+        alert('Inquiry declined');
+        loadInquiries();
+      } catch (e) { alert('Declined locally'); loadInquiries(); }
+    }
+
+    function openSocialModal(id, title) {
+      document.getElementById('socialProdTitle').innerText = title;
+      document.getElementById('igCaption').value = `Admire the timeless beauty of this ${title}. Hand-made by master artisans with traditional techniques and sustainable materials. ✨\n\nSupport authentic Indian heritage! 🏺\n\n#handcrafted #artisan #vocalforlocal #kalasetu #handmadeinindia`;
+      document.getElementById('socialModal').style.display = 'flex';
+    }
+    function closeSocialModal() {
+      document.getElementById('socialModal').style.display = 'none';
+    }
+    function copyCaption() {
+      navigator.clipboard.writeText(document.getElementById('igCaption').value);
+      alert('Instagram caption & hashtags copied to clipboard!');
+    }
+
+    function toggleChatDrawer() {
+      const drawer = document.getElementById('chatDrawer');
+      drawer.style.display = drawer.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      const msgs = document.getElementById('chatMessages');
+      msgs.innerHTML += `<div class="msg-bubble msg-user">${escapeHtml(text)}</div>`;
+      msgs.scrollTop = msgs.scrollHeight;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/chat/message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, language: 'hi' })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          msgs.innerHTML += `<div class="msg-bubble msg-ai">${escapeHtml(data.response || data.reply || 'मैंने आपका प्रश्न प्राप्त कर लिया है।')}</div>`;
+        } else {
+          msgs.innerHTML += `<div class="msg-bubble msg-ai">कलासेतु सहायता: आपके शिल्प का मूल्य और मांग बाजार में बढ़ रही है। क्या आप नया उत्पाद जोड़ना चाहते हैं?</div>`;
+        }
+      } catch (err) {
+        msgs.innerHTML += `<div class="msg-bubble msg-ai">कलासेतु सहायता: आपके शिल्प का मूल्य और मांग बाजार में बढ़ रही है। क्या आप नया उत्पाद जोड़ना चाहते हैं?</div>`;
+      }
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag] || tag));
+    }
+
+    // Initial load
+    loadProducts();
+    loadInquiries();
+  </script>
+</body>
+</html>

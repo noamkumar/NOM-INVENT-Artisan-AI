@@ -1,0 +1,23 @@
+class AppRouteConstants {
+  static const String splash = 'splash';
+  static const String language = 'language';
+  static const String signIn = 'signIn';
+  static const String register = 'register';
+  static const String ngoAuth = 'ngoAuth';
+  static const String otp = 'otp';
+
+  static const String home = 'home';
+  static const String catalogue = 'catalogue';
+  static const String addProduct = 'addProduct';
+  static const String socialMediaHelper = 'socialMediaHelper';
+  static const String profile = 'profile';
+  static const String notifications = 'notifications';
+  static const String myOrders = 'myOrders';
+  static const String orderDetail = 'orderDetail';
+
+  static const String productDetail = 'productDetail';
+  static const String languageSettings = 'languageSettings';
+  static const String myStats = 'myStats';
+  static const String listingTutorial = 'listingTutorial';
+  static const String assistant = 'assistant';
+}
