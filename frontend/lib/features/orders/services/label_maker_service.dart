@@ -50,8 +50,8 @@ class LabelMakerService {
         );
       default:
         return (
-          'Authentic handcrafted creation made with pride, sustainable materials, and traditional techniques under the KalaSetu artisan initiative.',
-          'कलासेतु पहल के तहत स्थानीय कारीगरों द्वारा पारंपरिक कौशल, प्राकृतिक सामग्री और गौरव के साथ निर्मित प्रामाणिक हस्तशिल्प।',
+          'Authentic handcrafted creation made with pride, sustainable materials, and traditional techniques under the Artisan AI initiative.',
+          'कारीगर साथी (Artisan AI) पहल के तहत स्थानीय कारीगरों द्वारा पारंपरिक कौशल, प्राकृतिक सामग्री और गौरव के साथ निर्मित प्रामाणिक हस्तशिल्प।',
         );
     }
   }
@@ -358,7 +358,7 @@ class LabelMakerService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      'KalaSetu',
+                      'Artisan AI',
                       style: pw.TextStyle(
                         font: fonts.bold,
                         fontSize: 16,
@@ -757,7 +757,7 @@ class LabelMakerService {
           pw.Divider(color: borderCol, thickness: 0.8),
           pw.Center(
             child: pw.Text(
-              'Crafted with pride. Packed with care. Delivered with love. — KalaSetu',
+              'Crafted with pride. Packed with care. Delivered with love. — Artisan AI',
               style: pw.TextStyle(
                 font: fonts.regular,
                 fontSize: 7.5,

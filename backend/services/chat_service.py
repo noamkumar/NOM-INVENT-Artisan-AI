@@ -100,11 +100,14 @@ You are an all-in-one assistant, mentor, and companion. You are NOT just an app 
 The user's currently selected app language is: {app_lang_name} (code: {app_language_code}).
 
 1. ALWAYS ANSWER IN THE SAME LANGUAGE IN WHICH THE USER ASKED THE QUESTION:
-   - If the user asks in Hindi (Devanagari or Romanized Hinglish) -> Answer in Hindi.
+   - If the user asks in Hindi (Devanagari or Romanized Hinglish) -> Answer in Hindi (हिन्दी).
    - If the user asks in English -> Answer in English.
-   - If the user asks in Tamil -> Answer in Tamil.
-   - If the user asks in Bengali -> Answer in Bengali.
-   - Never answer in English if the question was asked in Hindi, and never answer in Hindi if the question was asked in English.
+   - If the user asks in Tamil -> Answer in Tamil (தமிழ்).
+   - If the user asks in Telugu -> Answer in Telugu (తెలుగు).
+   - If the user asks in Kannada -> Answer in Kannada (ಕನ್ನಡ).
+   - If the user asks in Malayalam -> Answer in Malayalam (മലയാളം).
+   - If the user asks in Bengali -> Answer in Bengali (বাংলা).
+   - Never answer in English if the question was asked in an Indian regional language.
 
 2. IF THE QUESTION'S LANGUAGE DIFFERS FROM THE APP LANGUAGE:
    - If the user asks in a language different from the app's selected language ({app_lang_name}):
@@ -150,7 +153,12 @@ The user's currently selected app language is: {app_lang_name} (code: {app_langu
     "route": "/add-product | /catalogue | /my-stats | /language-settings | /profile | null",
     "tab_index": 0 | 1 | 2 | 3 | null,
     "label": "Action button text in user's language without asterisks",
-    "params": {{}}
+    "params": {{
+      "status": "sold | live | draft (for update_product_status)",
+      "target_product": "product name (for update_product_status)",
+      "query": "search keywords (for filter_catalogue)",
+      "category": null
+    }}
   }},
   "suggested_queries": ["Question 1", "Question 2", "Question 3"]
 }}
@@ -440,6 +448,15 @@ class ChatService:
         reply = re.sub(r'\*+', '', raw_reply)
         reply = re.sub(r'[ \t]+', ' ', reply).strip()
 
+        # Language parity check: Ensure response language matches question language
+        is_devanagari = bool(re.search(r'[\u0900-\u097F]', user_msg))
+        is_query_hindi = is_devanagari or any(
+            w in user_msg.lower().split()
+            for w in ["kaise", "kahan", "kya", "mera", "meri", "apna", "apni", "batao", "karo", "saman", "bechna", "jodna", "hai", "hain", "keemat", "mulya", "sujhav"]
+        )
+        if not is_query_hindi and not is_devanagari and bool(re.search(r'[\u0900-\u097F]', raw_reply)):
+            return self._rule_based_fallback(user_msg, app_lang, artisan_craft=artisan_craft)
+
         action_data = data.get("action")
         action: Optional[ChatActionSchema] = None
 
@@ -466,6 +483,24 @@ class ChatService:
             fallback = self._rule_based_fallback(user_msg, app_lang, artisan_craft=artisan_craft)
             if fallback.action is not None:
                 action = fallback.action
+        else:
+            # If LLM emitted a direct action, ensure all required parameter fields are populated
+            if action.type in ["update_product_status", "filter_catalogue", "sync_pending"]:
+                fallback = self._rule_based_fallback(user_msg, app_lang, artisan_craft=artisan_craft)
+                if fallback.action:
+                    fallback_params = fallback.action.params or {}
+                    current_params = dict(action.params or {})
+                    if action.type == "update_product_status":
+                        if not current_params.get("status"):
+                            current_params["status"] = fallback_params.get("status", "sold")
+                        if not current_params.get("target_product"):
+                            current_params["target_product"] = fallback_params.get("target_product", "product")
+                    elif action.type == "filter_catalogue":
+                        if not current_params.get("query"):
+                            current_params["query"] = fallback_params.get("query", "")
+                        if "category" not in current_params:
+                            current_params["category"] = fallback_params.get("category")
+                    action.params = current_params
 
         # Ensure language mismatch suggestion is present if query language differs from app_lang
         is_devanagari = bool(re.search(r'[\u0900-\u097F]', user_msg))

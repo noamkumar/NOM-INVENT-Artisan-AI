@@ -1,11 +1,11 @@
 {
-    "name": "kalasetu",
-    "short_name": "kalasetu",
+    "name": "Artisan AI",
+    "short_name": "Artisan AI",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#2D3E2F",
+    "theme_color": "#2D3E2F",
+    "description": "Artisan AI — AI-driven market linkage and smart cataloging for artisans.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

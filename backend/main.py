@@ -120,12 +120,12 @@ app.include_router(market_router)
 
 @app.get("/", tags=["Root"], include_in_schema=False)
 async def root():
-    """Serves the interactive KalaSetu web application."""
+    """Serves the interactive Artisan AI web application."""
     index_file = BACKEND_ROOT / "static" / "index.html"
     if index_file.exists():
         return FileResponse(str(index_file))
     return {
-        "message": "Welcome to KalaSetu API Gateway",
+        "message": "Welcome to Artisan AI API Gateway",
         "version": settings.app_version,
         "docs": "/docs",
         "health": "/api/v1/health",
@@ -139,7 +139,7 @@ async def root():
 async def api_info():
     """API gateway metadata endpoint."""
     return {
-        "message": "Welcome to KalaSetu API Gateway",
+        "message": "Welcome to Artisan AI API Gateway",
         "version": settings.app_version,
         "docs": "/docs",
         "health": "/api/v1/health",

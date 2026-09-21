@@ -88,7 +88,7 @@ class GroqClient:
             raise RuntimeError("Groq API key is not configured. Set GROQ_API_KEY in .env.")
 
         active_model = model or self.default_model
-        fallback_models = ["openai/gpt-oss-120b", "groq/compound-mini", "qwen/qwen3.6-27b"]
+        fallback_models = ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "groq/compound-mini", "qwen/qwen3.8-27b"]
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",

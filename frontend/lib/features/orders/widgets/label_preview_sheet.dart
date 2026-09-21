@@ -203,7 +203,7 @@ class _LabelPreviewSheetState extends ConsumerState<_LabelPreviewSheet> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'KalaSetu',
+                                    'Artisan AI',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,

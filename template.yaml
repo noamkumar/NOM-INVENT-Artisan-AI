@@ -21,13 +21,13 @@ Globals:
 Parameters:
   DatabaseUrl:
     Type: String
-    Default: "sqlite:////tmp/kalasetu.db"
-    Description: Database connection string
+    Default: "sqlite:////tmp/artisan_ai.db"
+    Description: Database connection string (PostgreSQL for persistent multi-user, or SQLite)
 
   MediaBucketName:
     Type: String
     Default: ""
-    Description: Optional S3 bucket name
+    Description: Optional S3 bucket name for cloud media storage
 
   GroqApiKey:
     Type: String
@@ -52,12 +52,14 @@ Resources:
           - GET
           - POST
           - PUT
+          - PATCH
           - DELETE
           - OPTIONS
         AllowHeaders:
           - Content-Type
           - Authorization
           - X-Requested-With
+          - X-Artisan-Id
         MaxAge: 600
 
   ArtisanApiFunction:

@@ -28,6 +28,15 @@ if "backend" not in sys.modules:
 
 from mangum import Mangum
 from backend.main import app
+from backend.config import ensure_upload_dir
+from backend.database import init_db
+
+# Initialize database schema and upload storage on Lambda cold-start
+try:
+    ensure_upload_dir()
+    init_db()
+except Exception as e:
+    print(f"[LambdaHandler] Startup initialization warning: {e}")
 
 # Handler invoked by AWS Lambda
 handler = Mangum(app, lifespan="off")

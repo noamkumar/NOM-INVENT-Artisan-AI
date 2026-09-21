@@ -30,6 +30,9 @@ void main() async {
   rootBundle.evict('assets/translations/en.json');
   rootBundle.evict('assets/translations/hi.json');
   rootBundle.evict('assets/translations/ta.json');
+  rootBundle.evict('assets/translations/te.json');
+  rootBundle.evict('assets/translations/kn.json');
+  rootBundle.evict('assets/translations/ml.json');
   rootBundle.evict('assets/translations/bn.json');
   await EasyLocalization.ensureInitialized();
 
@@ -68,6 +71,9 @@ void main() async {
         Locale('en'),
         Locale('hi'),
         Locale('ta'),
+        Locale('te'),
+        Locale('kn'),
+        Locale('ml'),
         Locale('bn'),
       ],
       path: 'assets/translations',

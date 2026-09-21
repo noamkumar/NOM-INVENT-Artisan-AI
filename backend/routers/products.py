@@ -8,7 +8,7 @@ import json
 import uuid
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -148,16 +148,27 @@ async def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     )
 
 
+from ..utils.security import get_optional_artisan, get_current_artisan
+from ..models.db_models import ArtisanDB
+
+
 @router.put("/{product_id}", response_model=ProductResponse)
 async def update_product(
     product_id: str,
     update_data: ProductUpdate,
+    current_artisan: Optional[ArtisanDB] = Depends(get_optional_artisan),
     db: Session = Depends(get_db),
 ):
-    """Update product fields."""
+    """Update product fields with ownership enforcement."""
     db_item = db.query(ProductDB).filter(ProductDB.id == product_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Product not found")
+
+    if current_artisan and db_item.artisan_id and db_item.artisan_id != current_artisan.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You cannot modify a product belonging to another artisan.",
+        )
 
     if update_data.title is not None:
         db_item.title = update_data.title
@@ -200,11 +211,21 @@ async def update_product(
 
 
 @router.delete("/{product_id}")
-async def delete_product(product_id: str, db: Session = Depends(get_db)):
-    """Delete product from database."""
+async def delete_product(
+    product_id: str,
+    current_artisan: Optional[ArtisanDB] = Depends(get_optional_artisan),
+    db: Session = Depends(get_db),
+):
+    """Delete product from database with ownership enforcement."""
     db_item = db.query(ProductDB).filter(ProductDB.id == product_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Product not found")
+
+    if current_artisan and db_item.artisan_id and db_item.artisan_id != current_artisan.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You cannot delete a product belonging to another artisan.",
+        )
 
     db.delete(db_item)
     db.commit()

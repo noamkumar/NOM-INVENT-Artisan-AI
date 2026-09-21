@@ -657,7 +657,7 @@ class _SocialMediaLaunchpadSheetState
                   const SizedBox(height: 6),
                   Center(
                      child: Text(
-                        _t(context, 'share_to_whatsapp_sub', fallbackEn: 'KalaSetu does not send messages automatically. WhatsApp will open for you to choose a recipient and confirm.', fallbackHi: 'कलासेतु स्वचालित रूप से संदेश नहीं भेजता है। व्हाट्सएप खुलेगा ताकि आप प्राप्तकर्ता चुन सकें और पुष्टि कर सकें।'),
+                        _t(context, 'share_to_whatsapp_sub', fallbackEn: 'Artisan AI does not send messages automatically. WhatsApp will open for you to choose a recipient and confirm.', fallbackHi: 'कारीगर साथी स्वचालित रूप से संदेश नहीं भेजता है। व्हाट्सएप खुलेगा ताकि आप प्राप्तकर्ता चुन सकें और पुष्टि कर सकें।'),
                         style: AppTextStyles.caption.copyWith(
                            color: AppColors.inkSoft,
                            fontSize: 11.5,

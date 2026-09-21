@@ -104,6 +104,9 @@ class AppTtsService {
     'en': 'en-IN',
     'hi': 'hi-IN',
     'ta': 'ta-IN',
+    'te': 'te-IN',
+    'kn': 'kn-IN',
+    'ml': 'ml-IN',
     'bn': 'bn-IN',
   };
 

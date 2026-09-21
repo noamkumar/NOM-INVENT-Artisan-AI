@@ -5,7 +5,6 @@ import 'package:kalasetu/core/providers/app_providers.dart';
 import 'package:kalasetu/data/services/api_service.dart';
 import 'package:kalasetu/features/orders/models/order.dart';
 import 'package:kalasetu/features/orders/models/buyer_inquiry.dart';
-import 'package:kalasetu/features/orders/providers/orders_provider.dart';
 import 'package:kalasetu/features/orders/screens/my_orders_screen.dart';
 
 class FakeTestApiService extends MockApiService {

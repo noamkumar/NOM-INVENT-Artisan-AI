@@ -100,10 +100,13 @@ async def login_artisan(
     }
 
 
+from ..utils.security import create_access_token, get_current_artisan
+
+
 @router.post(
     "/verify-otp",
     summary="Verify phone OTP",
-    description="Validates OTP and returns artisan session profile.",
+    description="Validates OTP and returns authenticated artisan session profile with JWT bearer token.",
 )
 async def verify_otp(
     request: OtpVerifyRequest,
@@ -123,12 +126,26 @@ async def verify_otp(
             detail="No artisan registered with this phone number. Please register first.",
         )
 
+    token = create_access_token(artisan_id=artisan.id, phone=artisan.phone)
+
     return {
         "status": "success",
-        "access_token": f"mock_jwt_token_{phone_clean}",
+        "access_token": token,
         "token_type": "bearer",
         "artisan": ArtisanProfileResponse.model_validate(artisan).model_dump(),
     }
+
+
+@router.get(
+    "/me",
+    response_model=ArtisanProfileResponse,
+    summary="Get current authenticated artisan profile",
+    description="Returns the profile of the artisan identified by the Bearer access token.",
+)
+async def get_current_artisan_profile(
+    current_artisan: ArtisanDB = Depends(get_current_artisan),
+):
+    return current_artisan
 
 
 @router.get(

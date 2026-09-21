@@ -20,10 +20,16 @@ UPLOAD_DIR = BACKEND_ROOT / "uploads"
 class Settings(BaseSettings):
     """Application settings with environment variable overrides."""
 
-    app_name: str = "KalaSetu API"
+    app_name: str = "Artisan AI API"
     app_version: str = "1.0.0"
     app_description: str = "AI-Driven Market Linkage & Smart Cataloging Backend for Marginalized Artisans"
     debug: bool = False
+    jwt_secret_key: str = Field(
+        default="artisan-ai-security-token-secret-production-key-2026",
+        description="Cryptographic secret key for signing JWT authentication tokens.",
+    )
+    jwt_algorithm: str = "HS256"
+    jwt_expiry_seconds: int = 86400 * 30  # 30 days
 
     # Server
     host: str = "0.0.0.0"

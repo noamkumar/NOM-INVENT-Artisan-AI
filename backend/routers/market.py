@@ -1,9 +1,9 @@
 """
-Market Linkage & B2B Wholesale Inquiries Router.
+Market Linkage & B2B Wholesale Inquiries Router with Strict Tenant Isolation.
 
 Provides endpoints for institutional buyers, cooperatives, and retail brands
 to submit bulk product procurement inquiries to artisans, and for artisans
-to manage and respond to them.
+to manage and respond to them securely.
 """
 
 import uuid
@@ -13,12 +13,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models.db_models import BuyerInquiryDB
+from ..models.db_models import BuyerInquiryDB, ArtisanDB
 from ..models.schemas import (
     BuyerInquiryCreate,
     BuyerInquiryStatusUpdate,
     BuyerInquiryResponse,
 )
+from ..utils.security import get_optional_artisan, get_current_artisan
 
 router = APIRouter(prefix="/api/v1/market", tags=["Market Linkage & B2B"])
 
@@ -58,14 +59,26 @@ async def list_inquiries(
     status: Optional[str] = Query(None, description="Filter by status (pending, accepted, rejected)"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
+    current_artisan: Optional[ArtisanDB] = Depends(get_optional_artisan),
     db: Session = Depends(get_db),
 ):
     """
-    List B2B buyer inquiries received by an artisan.
+    List B2B buyer inquiries with strict tenant isolation.
+    - Authenticated artisans ONLY see inquiries directed to their workshop.
+    - Cross-artisan access attempts yield 403 Forbidden.
     """
     query = db.query(BuyerInquiryDB)
-    if artisan_id:
+
+    if current_artisan:
+        if artisan_id and artisan_id != current_artisan.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: You cannot access wholesale inquiries for another artisan account.",
+            )
+        query = query.filter(BuyerInquiryDB.artisan_id == current_artisan.id)
+    elif artisan_id:
         query = query.filter(BuyerInquiryDB.artisan_id == artisan_id)
+
     if status:
         query = query.filter(BuyerInquiryDB.status == status)
 
@@ -73,9 +86,13 @@ async def list_inquiries(
 
 
 @router.get("/inquiries/{inquiry_id}", response_model=BuyerInquiryResponse)
-async def get_inquiry(inquiry_id: str, db: Session = Depends(get_db)):
+async def get_inquiry(
+    inquiry_id: str,
+    current_artisan: Optional[ArtisanDB] = Depends(get_optional_artisan),
+    db: Session = Depends(get_db),
+):
     """
-    Get detailed B2B inquiry specifications.
+    Get detailed B2B inquiry specifications. Enforces tenant ownership.
     """
     inquiry = db.query(BuyerInquiryDB).filter(BuyerInquiryDB.id == inquiry_id).first()
     if not inquiry:
@@ -83,23 +100,38 @@ async def get_inquiry(inquiry_id: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Inquiry '{inquiry_id}' not found",
         )
+
+    if current_artisan and inquiry.artisan_id and inquiry.artisan_id != current_artisan.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You cannot access an inquiry belonging to another artisan.",
+        )
+
     return inquiry
 
 
 @router.put("/inquiries/{inquiry_id}/status", response_model=BuyerInquiryResponse)
+@router.patch("/inquiries/{inquiry_id}/status", response_model=BuyerInquiryResponse)
 async def update_inquiry_status(
     inquiry_id: str,
     payload: BuyerInquiryStatusUpdate,
+    current_artisan: Optional[ArtisanDB] = Depends(get_optional_artisan),
     db: Session = Depends(get_db),
 ):
     """
-    Artisan accepts or rejects a B2B bulk inquiry with an optional response note.
+    Artisan accepts or rejects a B2B bulk inquiry. Enforces caller ownership.
     """
     inquiry = db.query(BuyerInquiryDB).filter(BuyerInquiryDB.id == inquiry_id).first()
     if not inquiry:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Inquiry '{inquiry_id}' not found",
+        )
+
+    if current_artisan and inquiry.artisan_id and inquiry.artisan_id != current_artisan.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You cannot respond to an inquiry belonging to another artisan.",
         )
 
     if payload.status not in ("pending", "accepted", "rejected"):
